@@ -1,386 +1,663 @@
 function condition_fields() {
-    var first_group = 0,
-        state_array = [],
-        count = state_array.length,
-        state = 'show';
+    var all_conds = jQuery('.condition-data').attr('data-conds');
+    var array = JSON.parse(all_conds);
 
-    jQuery('.um-profile-body .um-field, .um-profile-body .um-field').each(function () {
-        var conds = jQuery(this).attr('data-conds');
+    jQuery.each(array, function() {
+        var first_group = 0,
+            state_array = [],
+            count = state_array.length,
+            state = 'show',
+            metakey = this.metakey;
 
-        if ( conds ){
-            var array = JSON.parse(conds);
+        jQuery.each(this.conditions, function() {
+            var action = this[0],
+                field = this[1],
+                op = this[2],
+                val = this[3],
+                group = this[5],
+                depend_field;
 
-            jQuery.each(array, function() {
-                var action = this[0],
-                    field = this[1],
-                    op = this[2],
-                    val = this[3],
-                    group = this[5],
-                    depend_field;
+            var input = jQuery('.um-field[data-key="'+field+'"] .um-field-area input'),
+                select = jQuery('.um-field[data-key="'+field+'"] .um-field-area>select'),
+                textarea = jQuery('.um-field[data-key="'+field+'"] .um-field-area>textarea'),
+                content_block = jQuery('.um-field[data-key="'+field+'"] .um-field-block'),
+                depend_arr = [],
+                output_field = jQuery('.um-field[data-key="'+field+'"] .um-field-value');
 
-                var input = jQuery('.um-profile-body .um-field[data-key="'+field+'"] .um-field-area input'),
-                    select = jQuery('.um-profile-body .um-field[data-key="'+field+'"] .um-field-area>select'),
-                    textarea = jQuery('.um-profile-body .um-field[data-key="'+field+'"] .um-field-area>textarea'),
-                    content_block = jQuery('.um-profile-body .um-field[data-key="'+field+'"] .um-field-block');
 
-                if( input.length > 0 && select.length === 0 ){
+            if( input.length > 0 && select.length === 0 ){
 
-                    if( input.is(':checkbox') ){
-                        var checked = jQuery('.um-profile-body .um-field[data-key="'+field+'"] input:checked');
-                        checked.each(function () {
-                            var checked_vals = jQuery(this).val();
+                if( input.is(':checkbox') ){
+                    var checked = jQuery('.um-field[data-key="'+field+'"] input:checked');
+                    checked.each(function () {
+                        var checked_vals = jQuery(this).val();
+                        depend_arr.push(checked_vals);
+                    });
 
-                            if( checked_vals === val ){
-                                depend_field = val;
+                } else if( input.is(':radio')) {
+                    depend_field = jQuery('.um-field[data-key="'+field+'"] input:checked').val();
+                } else {
+                    depend_field = input.val();
+                }
+
+            } else if( select.length > 0 ){
+
+                if( jQuery.inArray( val, select.val() ) > 0 ){
+                    depend_field = val;
+                } else {
+                    depend_field = select.val()
+                }
+
+            } else if( textarea.length > 0 ){
+
+                depend_field = textarea.val();
+
+            } else if( content_block.length > 0 ){
+
+                depend_field = content_block.text();
+
+            } else if( output_field.length > 0 ){
+                if( output_field.hasClass('um-field-value-multiselect') || output_field.hasClass('um-field-value-checkbox') ){
+                    depend_arr = output_field.text().split(', ');
+
+                } else {
+                    depend_field = output_field.text();
+                }
+
+
+            }
+
+            if( parseInt(group) !== first_group ){
+
+                if ( action === 'show') {
+
+                    switch (op) {
+                        case 'equals to':
+                            if( depend_arr.length  > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( this == val ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if( depend_field == val ){
+                                    state = 'show';
+                                } else {
+                                    state = 'hide';
+                                }
+                            }
+                            break;
+
+                        case 'not equals':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( this != val ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if( depend_field != val ){
+                                    state = 'show';
+                                } else {
+                                    state = 'hide';
+                                }
+                            }
+                            break;
+
+                        case 'empty':
+
+                            if( !depend_field || depend_field === '' ){
+                                state = 'show';
+                            } else {
+                                state = 'hide';
+                            }
+                            break;
+
+                        case 'not empty':
+
+                            if( depend_field && depend_field !== '' ){
+                                state = 'show';
+                            } else {
+                                state = 'hide';
+                            }
+                            break;
+
+                        case 'greater than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) < parseInt(this) ){
+                                            state = 'show';
+                                            return false;
+                                        } else {
+                                            state = 'hide';
+                                        }
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
+                                    if( parseInt(val) < parseInt(depend_field) ){
+                                        state = 'show'
+                                    } else {
+                                        state = 'hide'
+                                    }
+                                } else {
+                                    state = 'hide';
+                                }
                             }
 
-                        });
-                    } else if( input.is(':radio')) {
-                        depend_field = jQuery('.um-profile-body .um-field[data-key="'+field+'"] input:checked').val();
-                    } else {
-                        depend_field = input.val();
+                            break;
+
+                        case 'less than':
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) > parseInt(this) ){
+                                            state = 'show';
+                                            return false;
+                                        } else {
+                                            state = 'hide';
+                                        }
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
+                                    if( parseInt(val) > parseInt(depend_field) ){
+                                        state = 'show'
+                                    } else {
+                                        state = 'hide'
+                                    }
+                                } else {
+                                    state = 'hide';
+                                }
+                            }
+
+                            break;
+
+                        case 'contains':
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if(this && this.search(val) >= 0 ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if(depend_field && depend_field.search(val) >= 0 ){
+                                    state = 'show';
+                                } else {
+                                    state = 'hide';
+                                }
+                            }
+                            break;
+
                     }
 
-                } else if( select.length > 0 ){
+                } else { // if hide
 
-                    if( jQuery.inArray( val, select.val() ) > 0 ){
-                        depend_field = val;
-                    } else {
-                        depend_field = select.val()
+                    switch (op) {
+                        case 'equals to':
+                            if( depend_arr.length > 0 ){
+
+                            } else {
+                                if (depend_field == val) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'show';
+                                }
+                            }
+
+
+                            break;
+
+                        case 'not equals':
+
+                            if( depend_arr.length > 0 ){
+
+                            } else {
+                                if (depend_field != val) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'show';
+                                }
+                            }
+
+                            break;
+
+                        case 'empty':
+
+                            if (!depend_field || depend_field === '') {
+                                state = 'hide';
+                            } else {
+                                state = 'show';
+                            }
+                            break;
+
+                        case 'not empty':
+
+                            if (depend_field && depend_field !== '') {
+                                state = 'hide';
+                            } else {
+                                state = 'show';
+                            }
+                            break;
+
+                        case 'greater than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) < parseInt(this) ){
+                                            state = 'hide';
+                                            return false;
+                                        } else {
+                                            state = 'show';
+                                        }
+                                    } else {
+                                        state = 'show';
+                                    }
+                                });
+                            } else {
+                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
+                                    if (parseInt(val) < parseInt(depend_field)) {
+                                        state = 'hide'
+                                    } else {
+                                        state = 'show'
+                                    }
+                                } else {
+                                    state = 'show';
+                                }
+                            }
+
+                            break;
+
+                        case 'less than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) > parseInt(this) ){
+                                            state = 'hide';
+                                            return false;
+                                        } else {
+                                            state = 'show';
+                                        }
+                                    } else {
+                                        state = 'show';
+                                    }
+                                });
+                            } else {
+                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
+                                    if (parseInt(val) > parseInt(depend_field)) {
+                                        state = 'hide'
+                                    } else {
+                                        state = 'show'
+                                    }
+                                } else {
+                                    state = 'show';
+                                }
+                            }
+
+                            break;
+
+                        case 'contains':
+                            if( depend_arr.length > 0 ) {
+                                jQuery.each(depend_arr, function() {
+                                    if(this &&  this.search(val) >= 0 ){
+                                        state = 'hide';
+                                        return false;
+                                    } else {
+                                        state = 'show';
+                                    }
+                                });
+                            } else {
+                                if (depend_field && depend_field.search(val) >= 0) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'show';
+                                }
+                            }
+
+                            break;
+
                     }
 
-                } else if( textarea.length > 0 ){
+                }
+                first_group++;
+                state_array.push(state);
+            } else {
 
-                    depend_field = textarea.val();
+                if ( action === 'show') {
 
-                } else if( content_block.length > 0 ){
+                    switch (op) {
+                        case 'equals to':
 
-                    depend_field = content_block.text();
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( this == val ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'hide';
+                                    }
+                                });
+                            } else {
+                                if( depend_field == val ){
+                                    state = 'show';
+                                } else {
+                                    state = 'not_show';
+                                }
+                            }
+
+                            break;
+
+                        case 'not equals':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( this != val ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'not_show';
+                                    }
+                                });
+                            } else {
+                                if( depend_field != val ){
+                                    state = 'show';
+                                } else {
+                                    state = 'not_show';
+                                }
+                            }
+
+                            break;
+
+                        case 'empty':
+
+                            if( !depend_field || depend_field === '' ){
+                                state = 'show';
+                            } else {
+                                state = 'not_show';
+                            }
+
+                            break;
+
+                        case 'not empty':
+
+                            if( depend_field && depend_field !== '' ){
+                                state = 'show';
+                            } else {
+                                state = 'not_show';
+                            }
+
+                            break;
+
+                        case 'greater than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) < parseInt(this) ){
+                                            state = 'show';
+                                            return false;
+                                        } else {
+                                            state = 'not_show';
+                                        }
+                                    } else {
+                                        state = 'not_show';
+                                    }
+                                });
+                            } else {
+
+                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
+                                    if( parseInt(val) < parseInt(depend_field) ){
+                                        state = 'show'
+                                    } else {
+                                        state = 'not_show'
+                                    }
+                                } else {
+                                    state = 'not_show';
+                                }
+                            }
+
+                            break;
+
+                        case 'less than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) > parseInt(this) ){
+                                            state = 'show';
+                                            return false;
+                                        } else {
+                                            state = 'not_show';
+                                        }
+                                    } else {
+                                        state = 'not_show';
+                                    }
+                                });
+                            } else {
+                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
+                                    if( parseInt(val) > parseInt(depend_field) ){
+                                        state = 'show'
+                                    } else {
+                                        state = 'not_show'
+                                    }
+                                } else {
+                                    state = 'not_show';
+                                }
+                            }
+
+                            break;
+
+                        case 'contains':
+
+                            if( depend_arr.length > 0 ) {
+                                jQuery.each(depend_arr, function() {
+                                    if( this && this.search(val) >= 0 ){
+                                        state = 'show';
+                                        return false;
+                                    } else {
+                                        state = 'not_show';
+                                    }
+                                });
+                            } else {
+                                if( depend_field && depend_field.search(val) >= 0 ){
+                                    state = 'show';
+                                } else {
+                                    state = 'not_show';
+                                }
+                            }
+                            break;
+
+                    }
+                } else { // if hide
+
+                    switch (op) {
+                        case 'equals to':
+
+                            if( depend_arr.length > 0 ){
+
+                            } else {
+                                if (depend_field == val) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'not_hide';
+                                }
+                            }
+
+                            break;
+
+                        case 'not equals':
+
+                            if( depend_arr.length > 0 ){
+
+                            } else {
+                                if (depend_field != val) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'not_hide';
+                                }
+                            }
+
+                            break;
+
+                        case 'empty':
+
+                            if (!depend_field || depend_field === '') {
+                                state = 'hide';
+                            } else {
+                                state = 'not_hide';
+                            }
+
+                            break;
+
+                        case 'not empty':
+
+                            if (depend_field && depend_field !== '') {
+                                state = 'hide';
+                            } else {
+                                state = 'not_hide';
+                            }
+
+                            break;
+
+                        case 'greater than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) < parseInt(this) ){
+                                            state = 'hide';
+                                            return false;
+                                        } else {
+                                            state = 'not_hide';
+                                        }
+                                    } else {
+                                        state = 'not_hide';
+                                    }
+                                });
+                            } else {
+                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
+                                    if (parseInt(val) < parseInt(depend_field)) {
+                                        state = 'hide'
+                                    } else {
+                                        state = 'not_hide'
+                                    }
+                                } else {
+                                    state = 'not_hide';
+                                }
+                            }
+
+                            break;
+
+                        case 'less than':
+
+                            if( depend_arr.length > 0 ){
+                                jQuery.each(depend_arr, function() {
+                                    if( jQuery.isNumeric(val) && jQuery.isNumeric(this) ){
+                                        if( parseInt(val) > parseInt(this) ){
+                                            state = 'hide';
+                                            return false;
+                                        } else {
+                                            state = 'not_hide';
+                                        }
+                                    } else {
+                                        state = 'not_hide';
+                                    }
+                                });
+                            } else {
+                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
+
+                                    if (parseInt(val) > parseInt(depend_field)) {
+                                        state = 'hide'
+                                    } else {
+                                        state = 'not_hide'
+                                    }
+                                } else {
+                                    state = 'not_hide';
+                                }
+                            }
+
+                            break;
+
+                        case 'contains':
+                            if( depend_arr.length > 0 ) {
+                                jQuery.each(depend_arr, function() {
+                                    if( this && this.search(val) >= 0 ){
+                                        state = 'hide';
+                                        return false;
+                                    } else {
+                                        state = 'not_hide';
+                                    }
+                                });
+                            } else {
+                                if (depend_field && depend_field.search(val) >= 0) {
+                                    state = 'hide';
+                                } else {
+                                    state = 'not_hide';
+                                }
+                            }
+
+                            break;
+
+                    }
 
                 }
 
-                if( parseInt(group) !== first_group ){
-
-                    if ( action === 'show') {
-
-                        switch (op) {
-                            case 'equals to':
-                                if( depend_field == val ){
-                                    state = 'show';
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'not equals':
-                                if( depend_field != val ){
-                                    state = 'show';
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'empty':
-                                if( !depend_field || depend_field === '' ){
-                                    state = 'show';
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'not empty':
-                                if( depend_field && depend_field !== '' ){
-                                    state = 'show';
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'greater than':
-                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
-                                    if( val > depend_field ){
-                                        state = 'show'
-                                    } else {
-                                        state = 'hide'
-                                    }
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'less than':
-                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
-                                    if( val < depend_field ){
-                                        state = 'show'
-                                    } else {
-                                        state = 'hide'
-                                    }
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                            case 'contains':
-                                if( depend_field.search(val) >= 0 ){
-                                    state = 'show';
-                                } else {
-                                    state = 'hide';
-                                }
-                                break;
-
-                        }
-
-                    } else { // if hide
-
-                        switch (op) {
-                            case 'equals to':
-                                if (depend_field == val) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'not equals':
-                                if (depend_field != val) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'empty':
-                                if (!depend_field || depend_field === '') {
-                                    state = 'hide';
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'not empty':
-                                if (depend_field && depend_field !== '') {
-                                    state = 'hide';
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'greater than':
-                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
-                                    if (val > depend_field) {
-                                        state = 'hide'
-                                    } else {
-                                        state = 'show'
-                                    }
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'less than':
-                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
-                                    if (val < depend_field) {
-                                        state = 'hide'
-                                    } else {
-                                        state = 'show'
-                                    }
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                            case 'contains':
-                                if (depend_field.search(val) >= 0) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'show';
-                                }
-                                break;
-
-                        }
-
-                    }
-                    first_group++;
-                    state_array.push(state);
-                } else {
-
-                    if ( action === 'show') {
-
-                        switch (op) {
-                            case 'equals to':
-                                if( depend_field == val ){
-                                    state = 'show';
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'not equals':
-                                if( depend_field != val ){
-                                    state = 'show';
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'empty':
-                                if( !depend_field || depend_field === '' ){
-                                    state = 'show';
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'not empty':
-                                if( depend_field && depend_field !== '' ){
-                                    state = 'show';
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'greater than':
-                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
-                                    if( val > depend_field ){
-                                        state = 'show'
-                                    } else {
-                                        state = 'not_show'
-                                    }
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'less than':
-                                if( jQuery.isNumeric(val) && jQuery.isNumeric(depend_field) ){
-                                    if( val < depend_field ){
-                                        state = 'show'
-                                    } else {
-                                        state = 'not_show'
-                                    }
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                            case 'contains':
-                                if( depend_field.search(val) >= 0 ){
-                                    state = 'show';
-                                } else {
-                                    state = 'not_show';
-                                }
-                                break;
-
-                        }
-
-                    } else { // if hide
-
-                        switch (op) {
-                            case 'equals to':
-                                if (depend_field == val) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'not equals':
-                                if (depend_field != val) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'empty':
-                                if (!depend_field || depend_field === '') {
-                                    state = 'hide';
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'not empty':
-                                if (depend_field && depend_field !== '') {
-                                    state = 'hide';
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'greater than':
-                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
-                                    if (val > depend_field) {
-                                        state = 'hide'
-                                    } else {
-                                        state = 'not_hide'
-                                    }
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'less than':
-                                if (jQuery.isNumeric(val) && jQuery.isNumeric(depend_field)) {
-                                    if (val < depend_field) {
-                                        state = 'hide'
-                                    } else {
-                                        state = 'not_hide'
-                                    }
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                            case 'contains':
-                                if (depend_field.search(val) >= 0) {
-                                    state = 'hide';
-                                } else {
-                                    state = 'not_hide';
-                                }
-                                break;
-
-                        }
-
-                    }
-                    if( state_array[count] ){
-                        if( state_array[count] === 'show' || state_array[count] === 'not_hide' ){
-                            if ( state === 'show' || state === 'not_hide' ){
-                                state_array[count] = 'show';
-                            } else {
-                                state_array[count] = 'hide';
-                            }
-                        } else {
-                            state_array[count] = 'hide';
-                        }
-                    } else {
+                if( state_array[count] ){
+                    if( state_array[count] === 'show' || state_array[count] === 'not_hide' ){
                         if ( state === 'show' || state === 'not_hide' ){
                             state_array[count] = 'show';
                         } else {
                             state_array[count] = 'hide';
                         }
+                    } else {
+                        state_array[count] = 'hide';
+                    }
+                } else {
+                    if ( state === 'show' || state === 'not_hide' ){
+                        state_array[count] = 'show';
+                    } else {
+                        state_array[count] = 'hide';
                     }
                 }
-
-            });
-
-            if( jQuery.inArray( 'show', state_array ) < 0 ){
-                jQuery(this).hide();
-            } else {
-                jQuery(this).show();
             }
-        }
+        })
 
+
+        if( jQuery.inArray( 'show', state_array ) < 0 ){
+            jQuery('.um-field[data-key="'+metakey+'"]').hide().addClass('overlook');
+        } else {
+            jQuery('.um-field[data-key="'+metakey+'"]').show().removeClass('overlook');
+        }
     });
+
 }
 jQuery(document).ready( function (){
 
     condition_fields();
 
-    jQuery('.um-profile-body .um-field input, .um-profile-body .um-field textarea').on('change keyup', function () {
+    jQuery('.um-field input, .um-field textarea').on('change keyup', function () {
         condition_fields();
     });
-    jQuery('.um-profile-body .um-field select').on('change', function () {
+    jQuery('.um-field select').on('change', function () {
         condition_fields();
     });
 

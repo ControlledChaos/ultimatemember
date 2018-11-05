@@ -7,9 +7,20 @@
  * @param $args
  */
 function um_add_form_identifier( $args ) {
-	?>
-		<input type="hidden" name="form_id" id="form_id_<?php echo $args['form_id']; ?>" value="<?php echo $args['form_id']; ?>" />
-	<?php
+    $conditional_array = array();
+    foreach($args['custom_fields'] as $arg){
+        if( isset($arg['conditions']) ){
+            $field_array = array(
+                'metakey' => $arg['metakey'],
+                'conditions' => $arg['conditions'],
+            );
+            array_push( $conditional_array, $field_array );
+        }
+    }
+    $cond_data = json_encode($conditional_array);
+    ?>
+    <input type="hidden" name="form_id" id="form_id_<?php echo $args['form_id']; ?>" class="condition-data" value="<?php echo $args['form_id']; ?>" data-conds="<?php echo esc_attr($cond_data); ?>" />
+    <?php
 }
 add_action( 'um_after_form_fields', 'um_add_form_identifier' );
 
@@ -20,18 +31,18 @@ add_action( 'um_after_form_fields', 'um_add_form_identifier' );
  * @param $args
  */
 function um_add_security_checks( $args ) {
-	if ( is_admin() ) {
-		return;
-	} ?>
+    if ( is_admin() ) {
+        return;
+    } ?>
 
-	<input type="hidden" name="timestamp" class="um_timestamp" value="<?php echo current_time( 'timestamp' ) ?>" />
+    <input type="hidden" name="timestamp" class="um_timestamp" value="<?php echo current_time( 'timestamp' ) ?>" />
 
-	<p class="<?php echo UM()->honeypot; ?>_name">
-		<label for="<?php echo UM()->honeypot . '_' . $args['form_id']; ?>"><?php _e( 'Only fill in if you are not human' ); ?></label>
-		<input type="text" name="<?php echo UM()->honeypot; ?>" id="<?php echo UM()->honeypot . '_' . $args['form_id']; ?>" class="input" value="" size="25" autocomplete="off" />
-	</p>
+    <p class="<?php echo UM()->honeypot; ?>_name">
+        <label for="<?php echo UM()->honeypot . '_' . $args['form_id']; ?>"><?php _e( 'Only fill in if you are not human' ); ?></label>
+        <input type="text" name="<?php echo UM()->honeypot; ?>" id="<?php echo UM()->honeypot . '_' . $args['form_id']; ?>" class="input" value="" size="25" autocomplete="off" />
+    </p>
 
-	<?php
+    <?php
 }
 add_action( 'um_after_form_fields', 'um_add_security_checks' );
 add_action( 'um_account_page_hidden_fields', 'um_add_security_checks' );
@@ -41,13 +52,13 @@ add_action( 'um_account_page_hidden_fields', 'um_add_security_checks' );
  * Makes the honeypot invisible
  */
 function um_add_form_honeypot_css() {
-	?>
-		<style type="text/css">
-			.<?php echo UM()->honeypot; ?>_name {
-				display: none !important;
-			}
-		</style>
-	<?php
+    ?>
+    <style type="text/css">
+        .<?php echo UM()->honeypot; ?>_name {
+            display: none !important;
+        }
+    </style>
+    <?php
 }
 add_action( 'wp_head', 'um_add_form_honeypot_css' );
 
@@ -55,10 +66,10 @@ add_action( 'wp_head', 'um_add_form_honeypot_css' );
  * Empty the honeypot value
  */
 function um_add_form_honeypot_js() {
-	?>
-		<script type="text/javascript">
-			jQuery( '#<?php echo UM()->honeypot; ?>' ).val( '' );
-		</script>
-	<?php
+    ?>
+    <script type="text/javascript">
+        jQuery( '#<?php echo UM()->honeypot; ?>' ).val( '' );
+    </script>
+    <?php
 }
 add_action( 'wp_footer', 'um_add_form_honeypot_js', 99999999999999999 );
