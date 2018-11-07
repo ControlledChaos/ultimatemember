@@ -329,9 +329,13 @@ jQuery(document).ready(function() {
      remove a condition
      **/
     jQuery(document).on('click', '.um-admin-remove-condition', function(){
+        var and_button_clone = jQuery('.um-admin-new-condition-compare-and').clone();
+
         jQuery('.um-admin-new-condition').removeAttr('disabled');
         var condition = jQuery(this).parents('.um-admin-cur-condition');
         var conditionwrap = jQuery(this).parents('.condition-wrap');
+
+
         jQuery('.um-admin-new-condition').removeClass('disabled');
         jQuery('.tipsy').remove();
         var compare = condition.find('input[type=hidden]').val();
@@ -363,20 +367,24 @@ jQuery(document).ready(function() {
             jQuery( this ).find('[id^="_conditional_group"]').attr('id', '_conditional_group' + id);
         } );
 
-        var count_button = conditionwrap.find('.um-admin-new-condition-compare-and');
 
-        count_button.each(function () {
+
+        conditionwrap.find('.um-admin-new-condition-compare-and').each(function () {
             if( jQuery(this).prev('.um-admin-cur-condition').length === 0 ){
-                if( condition.length !== 1 ) {
-                    jQuery(this).remove();
-                }
+                jQuery(this).remove();
             }
         });
-        count_button.find('.or-devider').each(function () {
+
+        conditionwrap.find('.or-devider').each(function () {
             if( jQuery(this).prev('.um-admin-new-condition-compare-and').length === 0 ){
                 jQuery(this).remove();
             }
         });
+        var count_button = conditionwrap.find('.um-admin-new-condition-compare-and');
+
+        if( count_button.length === 0 ) {
+            jQuery('.um-admin-new-condition-compare-or').before(and_button_clone);
+        }
 
         um_admin_live_update_scripts();
         um_admin_modal_responsive();
